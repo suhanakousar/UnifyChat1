@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("authToken"); // Changed from "token" to "authToken"
     console.log(token);
     if (token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -39,13 +39,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = (token) => {
-    localStorage.setItem("token", token);
+    localStorage.setItem("authToken", token); // Changed from "token" to "authToken"
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     fetchUser();
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    localStorage.removeItem("authToken"); // Changed from "token" to "authToken"
     setUser(null);
     delete axios.defaults.headers.common["Authorization"];
   };
