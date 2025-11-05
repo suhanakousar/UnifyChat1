@@ -842,6 +842,29 @@ const ChatRoom = () => {
   const handleChatClick = useCallback(async (chatId) => {
     if (isLoadingRoom) return; // Prevent switching during load
 
+    // Reset join request states
+    setShowJoinRequest(false);
+    setShowWaitingApproval(false);
+
+    // Find the chat to check its status
+    const clickedChat = chats.find(chat => chat.id === chatId);
+    
+    // If chat has pending status, show waiting approval
+    if (clickedChat && clickedChat.status === "pending") {
+      setInvitedChatDetails({
+        id: chatId,
+        name: clickedChat.name || "Chat Room",
+        avatarColor: clickedChat.avatar_color,
+        avatarText: clickedChat.avatar_text,
+        lastMessage: clickedChat.last_message || "",
+        status: "pending"
+      });
+      setShowWaitingApproval(true);
+      setCurrentChatId(chatId);
+      navigate(`/Chat/${chatId}`);
+      return;
+    }
+
     setLastScrollChatId(currentChatId);
     setCurrentChatId(chatId);
     navigate(`/Chat/${chatId}`);
@@ -858,7 +881,7 @@ const ChatRoom = () => {
 
     // Load room data with debouncing
     debouncedLoadRoom(chatId);
-  }, [currentChatId, navigate, socket, isLoadingRoom, debouncedLoadRoom]);
+  }, [currentChatId, navigate, socket, isLoadingRoom, debouncedLoadRoom, chats]);
 
   // 8. Handle resizing
   useEffect(() => {
@@ -985,35 +1008,56 @@ const ChatRoom = () => {
   //     //   ...prev,
   //     //   [chatId]: res.data.messages.filter(
   //     //     (message) => message.chat_id === chatId
-  const handleJoinRequest = async (userName) => {
+  const handleJoinRequest = async () => {
+    if (!invitedChatDetails || !invitedChatDetails.id) {
+      showToastError("Invalid chat room information");
+      return;
+    }
+
     const requestedId = invitedChatDetails.id;
 
     // update in backend
     try {
-      await axios.post(
-        `${API_BASE_URL}/chatroom/${requestedId}/request`,
+      const response = await api.post(
+        `/chatroom/${requestedId}/request`,
         {
           userId: userId,
         }
       );
-      showToastSuccess("Join request sent successfully");
+      
+      if (response.data && response.data.message) {
+        showToastSuccess(response.data.message.includes('already') ? "You already have a pending request" : "Join request sent successfully");
+      } else {
+        showToastSuccess("Join request sent successfully");
+      }
+      
+      setShowJoinRequest(false);
+      setShowWaitingApproval(true);
     } catch (err) {
-      showToastError("Failed to send join request");
-      return;
+      console.error("Error sending join request:", err);
+      if (err.response?.status === 404) {
+        showToastError("Chat room not found");
+      } else if (err.response?.status === 403) {
+        showToastError("Access denied to this chat room");
+      } else {
+        showToastError(err.response?.data?.error || "Failed to send join request");
+      }
     }
-
-    setShowJoinRequest(false);
-    setShowWaitingApproval(true);
   };
 
   // 12. Handle cancel join request
   const handleCancelJoinRequest = () => {
     setShowJoinRequest(false);
+    setShowWaitingApproval(false);
+    setInvitedChatDetails({});
 
     if (chats.length > 0) {
-      setCurrentChatId(chats[0].id);
+      const firstChat = chats[0];
+      setCurrentChatId(firstChat.id);
+      navigate(`/Chat/${firstChat.id}`);
     } else {
       setCurrentChatId(null);
+      navigate("/Chat");
     }
   };
 
@@ -1085,13 +1129,13 @@ const ChatRoom = () => {
       }
 
       // Send join request
-      await api.post(
+      const requestResponse = await api.post(
         `/chatroom/${chatId}/request`,
         { userId: userId }
       );
 
-      // Get chatroom details
-      const chatroom = membershipCheck.data.chatroom;
+      // Get chatroom details from membership check response
+      const chatroom = membershipCheckData.chatroom;
       if (chatroom) {
         const invitedChat = {
           id: chatId,
@@ -1102,12 +1146,25 @@ const ChatRoom = () => {
           time: new Date(),
           unread: true,
           messages: [],
-          status: "invited",
+          status: "pending",
         };
 
         setInvitedChatDetails(invitedChat);
-        showToastSuccess("Join request sent successfully");
-        setShowJoinRequest(true);
+        
+        // Show appropriate message
+        if (requestResponse.data && requestResponse.data.message) {
+          if (requestResponse.data.message.includes('already')) {
+            showToastSuccess("You already have a pending request");
+            setShowWaitingApproval(true);
+          } else {
+            showToastSuccess("Join request sent successfully");
+            setShowJoinRequest(true);
+          }
+        } else {
+          showToastSuccess("Join request sent successfully");
+          setShowJoinRequest(true);
+        }
+        
         setShowJoinViaLinkModal(false);
         navigate("/Chat");
       } else {
@@ -1306,7 +1363,7 @@ const ChatRoom = () => {
     );
   };
 
-  if (showWaitingApproval && invitedChatDetails) {
+  if (showWaitingApproval && invitedChatDetails && invitedChatDetails.name) {
     return (
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors overflow-hidden">
         <div className="flex flex-1 overflow-hidden relative">
@@ -1333,13 +1390,13 @@ const ChatRoom = () => {
               />
             </div>
           )}
-          <WaitingApproval chatName={invitedChatDetails.name} />
+          <WaitingApproval chatName={invitedChatDetails.name || "Chat Room"} />
         </div>
       </div>
     );
   }
 
-  if (showJoinRequest && invitedChatDetails) {
+  if (showJoinRequest && invitedChatDetails && invitedChatDetails.id) {
     return (
       <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors overflow-hidden">
         <div className="flex flex-1 overflow-hidden relative">
@@ -1367,7 +1424,7 @@ const ChatRoom = () => {
             </div>
           )}
           <RequestJoin
-            chatName={invitedChatDetails.name}
+            chatName={invitedChatDetails.name || "Chat Room"}
             onJoinRequest={handleJoinRequest}
             onCancel={handleCancelJoinRequest}
           />
