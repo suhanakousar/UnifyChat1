@@ -21,6 +21,18 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const login = (token) => {
+    localStorage.setItem("authToken", token); // Changed from "token" to "authToken"
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    fetchUser();
+  };
+
+  const logout = () => {
+    localStorage.removeItem("authToken"); // Changed from "token" to "authToken"
+    setUser(null);
+    delete axios.defaults.headers.common["Authorization"];
+  };
+
   const fetchUser = async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/auth/me`);
@@ -36,18 +48,6 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const login = (token) => {
-    localStorage.setItem("authToken", token); // Changed from "token" to "authToken"
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    fetchUser();
-  };
-
-  const logout = () => {
-    localStorage.removeItem("authToken"); // Changed from "token" to "authToken"
-    setUser(null);
-    delete axios.defaults.headers.common["Authorization"];
   };
 
   const updateUser = async (userData) => {
