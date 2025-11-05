@@ -1292,29 +1292,30 @@ const ChatRoom = () => {
 
   if (showWaitingApproval && invitedChatDetails) {
     return (
-      <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors">
-        <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
           {showSidebar && (
-          <Sidebar
-            chats={filteredChats}
-            originalChats={chats}
-            setOriginalChats={setChats}
-            currentChatId={currentChatId}
-            onChatClick={handleChatClick}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeFilter={activeFilter}
-            setActiveFilter={setActiveFilter}
-            onNewChat={() => setIsNewChatModalOpen(true)}
-            onBackToChats={handleBackToChats}
-            onBackToHome={onBackToHome}
-            onJoinViaLink={() => setShowJoinViaLinkModal(true)}
-            onDeleteChat={handleDeleteChat}
-            isAdmin={chatAdmins[currentChatId] === userId}
-            currentUserId={userId}
-            chatAdmins={chatAdmins}
-          />
-          </div>
+            <div className="absolute md:relative inset-0 md:inset-auto z-50 md:z-auto">
+              <Sidebar
+                chats={filteredChats}
+                originalChats={chats}
+                setOriginalChats={setChats}
+                currentChatId={currentChatId}
+                onChatClick={handleChatClick}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                activeFilter={activeFilter}
+                setActiveFilter={setActiveFilter}
+                onNewChat={() => setIsNewChatModalOpen(true)}
+                onBackToChats={handleBackToChats}
+                onBackToHome={onBackToHome}
+                onJoinViaLink={() => setShowJoinViaLinkModal(true)}
+                onDeleteChat={handleDeleteChat}
+                isAdmin={chatAdmins[currentChatId] === userId}
+                currentUserId={userId}
+                chatAdmins={chatAdmins}
+              />
+            </div>
           )}
           <WaitingApproval chatName={invitedChatDetails.name} />
         </div>
@@ -1324,29 +1325,30 @@ const ChatRoom = () => {
 
   if (showJoinRequest && invitedChatDetails) {
     return (
-      <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors">
-        <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col h-screen bg-neutral-50 dark:bg-brand-grey-dark transition-colors overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
           {showSidebar && (
-          <Sidebar
-            chats={filteredChats}
-            originalChats={chats}
-            setOriginalChats={setChats}
-            currentChatId={currentChatId}
-            onChatClick={handleChatClick}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeFilter={activeFilter}
-            setActiveFilter={setActiveFilter}
-            onNewChat={() => setIsNewChatModalOpen(true)}
-            onBackToChats={handleBackToChats}
-            onBackToHome={() => navigate('/')}
-            onJoinViaLink={() => setShowJoinViaLinkModal(true)}
-            onDeleteChat={handleDeleteChat}
-            isAdmin={chatAdmins[currentChatId] === userId}
-            currentUserId={userId}
-            chatAdmins={chatAdmins}
-          />
-          </div>
+            <div className="absolute md:relative inset-0 md:inset-auto z-50 md:z-auto">
+              <Sidebar
+                chats={filteredChats}
+                originalChats={chats}
+                setOriginalChats={setChats}
+                currentChatId={currentChatId}
+                onChatClick={handleChatClick}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                activeFilter={activeFilter}
+                setActiveFilter={setActiveFilter}
+                onNewChat={() => setIsNewChatModalOpen(true)}
+                onBackToChats={handleBackToChats}
+                onBackToHome={() => navigate('/')}
+                onJoinViaLink={() => setShowJoinViaLinkModal(true)}
+                onDeleteChat={handleDeleteChat}
+                isAdmin={chatAdmins[currentChatId] === userId}
+                currentUserId={userId}
+                chatAdmins={chatAdmins}
+              />
+            </div>
           )}
           <RequestJoin
             chatName={invitedChatDetails.name}
