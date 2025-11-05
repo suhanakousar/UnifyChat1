@@ -176,7 +176,10 @@ const ChatRoom = () => {
   const membershipControllerRef = useRef(null);
 
   const checkMembership = useCallback(async (chatId) => {
-    if (!chatId) return;
+    if (!chatId || !userId) {
+      console.warn('checkMembership: Missing chatId or userId', { chatId, userId });
+      return;
+    }
 
     // Cancel previous request
     if (membershipControllerRef.current) {
@@ -188,26 +191,39 @@ const ChatRoom = () => {
 
     try {
       const token = localStorage.getItem('authToken');
+      if (!token) {
+        console.error('No auth token found');
+        showToastError("Please log in to access chats");
+        navigate("/Signin");
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/chatroom/${chatId}/isMember/${userId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         },
         signal // Pass the AbortController signal
       });
 
       let data;
       try {
-        data = await response.json();
+        const text = await response.text();
+        if (!text) {
+          throw new Error('Empty response from server');
+        }
+        data = JSON.parse(text);
       } catch (jsonError) {
-        // If response is not JSON, or parsing fails
+        console.error('Failed to parse response:', jsonError, 'Response status:', response.status);
         const error = new Error('Failed to parse response from server');
         error.response = { status: response.status, data: { message: 'Invalid server response' } };
         throw error;
       }
 
       if (!response.ok) {
-        const error = new Error(data.message || 'Failed to fetch membership status');
+        console.error('Membership check failed:', response.status, data);
+        const error = new Error(data.message || data.error || 'Failed to fetch membership status');
         error.response = { status: response.status, data: data };
         throw error;
       }
@@ -266,16 +282,25 @@ const ChatRoom = () => {
         // Request was canceled, ignore
         return;
       }
-      if (err.response?.status === 404) {
+      if (err.name === 'AbortError') {
+        // Request was aborted, ignore
+        return;
+      }
+      console.error('Membership check error:', err);
+      if (err.response?.status === 401) {
+        showToastError("Session expired. Please log in again");
+        navigate("/Signin");
+      } else if (err.response?.status === 404) {
         showToastError("Chat room not found");
         navigate("/Chat");
       } else if (err.response?.status === 403) {
         showToastError("You are not a member of this chat room");
         navigate("/Chat");
+      } else if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        showToastError("Network error. Please check your connection");
       } else {
         // Handle null chatroom or malformed response
-        showToastError("Failed to check membership");
-        navigate("/Chat");
+        showToastError(err.message || "Failed to check membership");
       }
     } finally {
       membershipControllerRef.current = null;
@@ -283,8 +308,10 @@ const ChatRoom = () => {
   }, [userId, navigate]);
 
   useEffect(() => {
-    checkMembership(currentChatId);
-  }, [currentChatId, checkMembership]);
+    if (currentChatId && userId) {
+      checkMembership(currentChatId);
+    }
+  }, [currentChatId, userId, checkMembership]);
 
   // Single socket
   const [socket, setSocket] = useState(null);
@@ -361,15 +388,24 @@ const ChatRoom = () => {
   }, [currentChatId]);
 
   useEffect(() => {
+    if (!userId) {
+      console.warn('Socket.IO: userId not available, skipping connection');
+      return;
+    }
+
+    console.log("Attempting Socket.IO connection with userId:", userId);
     const socketInstance = io(`${API_BASE_URL}`, {
-      transports: ["websocket"],
+      transports: ["websocket", "polling"], // Add polling as fallback
       auth: { userId: userId },
       withCredentials: true, // Send cookies with socket connection
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
     });
 
-    console.log("Attempting Socket.IO connection with userId:", userId); // Add this line
-
     socketInstance.on("connect", () => {
+      console.log("Socket.IO connected successfully");
       // Join current room if exists
       if (urlChatId) {
         socketInstance.emit("joinRoom", urlChatId);
@@ -377,10 +413,13 @@ const ChatRoom = () => {
     });
 
     socketInstance.on("connect_error", (error) => {
-      showToastError("Failed to connect to chat server");
+      console.error("Socket.IO connection error:", error);
+      // Don't show error toast on every connection attempt to avoid spam
+      // The socket will auto-retry
     });
 
     socketInstance.on("disconnect", (reason) => {
+      console.log("Socket.IO disconnected:", reason);
     });
 
     socketInstance.on("join-request-handled", (data) => {
@@ -399,7 +438,10 @@ const ChatRoom = () => {
 
     setSocket(socketInstance);
 
-    return () => socketInstance.disconnect();
+    return () => {
+      console.log("Cleaning up Socket.IO connection");
+      socketInstance.disconnect();
+    };
   }, [userId, urlChatId, navigate]);
 
   useEffect(() => {
