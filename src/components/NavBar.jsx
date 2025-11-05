@@ -68,8 +68,8 @@ const NavBar = () => {
                 window.scrollTo(0, 0);
               }}
             >
-              <img src={logo} alt="Chatlas" className="h-10 w-10" />
-              <span className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 font-['Montserrat']">Chat</span>
+              <img src={logo} alt="UnifyChat" className="h-10 w-10" />
+              <span className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 font-['Montserrat']">UnifyChat</span>
             </Link>
           )}
 

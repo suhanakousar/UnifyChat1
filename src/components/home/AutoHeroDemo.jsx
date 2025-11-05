@@ -226,7 +226,7 @@ const AutoHeroDemo = () => {
         <div className="max-w-4xl mx-auto text-center mb-12">
           {/* Hero headline with rotating welcome word */}
           <h1 className="text-3xl md:text-5xl font-bold mb-6">
-            <RotatingWord /> to Translation
+            <RotatingWord /> to UnifyChat
           </h1>
 
           {/* Main tagline */}
