@@ -148,6 +148,7 @@ const ChatRoom = () => {
   const [currentChatId, setCurrentChatId] = useState(urlChatId);
   const [lastScrollChatId, setLastScrollChatId] = useState(null);
   const [newMessage, setNewMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
 
   // UI states
   const [activeFilter, setActiveFilter] = useState("all");
@@ -555,12 +556,23 @@ const ChatRoom = () => {
   }, [chats, activeFilter, searchTerm]);
 
   const handleSendMessage = async (replyToMessage = null) => {
-    if (!newMessage.trim() || !currentChatId) return;
+    if (!newMessage.trim() || !currentChatId || isSending) return;
+
+    // Store message content before clearing input
+    const messageContent = newMessage.trim();
+    
+    // Clear input immediately for better UX
+    setNewMessage("");
+    if (replyToMessage) {
+      setReplyingTo(null);
+    }
+    
+    setIsSending(true);
 
     try {
       const response = await axios.post(
         `${API_BASE_URL}/rooms/${currentChatId}/messages`,
-        { text: newMessage, userId: userId, replyToId: replyToMessage?.id }
+        { text: messageContent, userId: userId, replyToId: replyToMessage?.id }
       );
       const savedMessage = response.data;
       savedMessage.fromUser = true;
@@ -604,18 +616,19 @@ const ChatRoom = () => {
         socket.emit("send-message", messageToSend, currentChatId);
       }
 
-      setNewMessage("");
-      if (replyToMessage) {
-        setReplyingTo(null);
-      }
-
       const updated = chats.map((chat) =>
         chat.id === currentChatId
-          ? { ...chat, lastMessage: `You: ${newMessage}`, time: "now" }
+          ? { ...chat, lastMessage: `You: ${messageContent}`, time: "now" }
           : chat
       );
       setChats(updated);
     } catch (error) {
+      // Restore message on error
+      setNewMessage(messageContent);
+      if (replyToMessage) {
+        setReplyingTo(replyToMessage);
+      }
+      
       if (error.response?.status === 404) {
         showToastError("Chat room not found");
       } else if (error.response?.status === 403) {
@@ -623,6 +636,8 @@ const ChatRoom = () => {
       } else {
         showToastError(error.response?.data?.error || "Error sending message");
       }
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -1263,6 +1278,7 @@ const ChatRoom = () => {
         newMessage={newMessage}
         setNewMessage={setNewMessage}
         onSendMessage={handleSendMessage}
+        isSending={isSending}
         messageContainerRef={messageContainerRef}
         toggleSidebar={toggleSidebar}
         toggleChatInfo={toggleChatInfo}

@@ -143,6 +143,7 @@ const ChatWindow = ({
   newMessage,
   setNewMessage,
   onSendMessage,
+  isSending = false,
   messageContainerRef,
   toggleSidebar,
   toggleChatInfo,
@@ -205,13 +206,15 @@ const ChatWindow = ({
   }, [currentChat, onLoadMoreMessages]);
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isSending) {
       e.preventDefault();
       handleSendClick();
     }
   };
   
   const handleSendClick = () => {
+    if (isSending || !newMessage.trim()) return;
+    
     if (replyingTo && onSendMessage) {
       onSendMessage(replyingTo);
       handleSetReplyingTo(null);
@@ -752,8 +755,9 @@ const ChatWindow = ({
         </div>
         <IconButton
           icon={<FaPaperPlane className="text-brand-yellow dark:text-brand-yellow-light" />}
-          className="hover:bg-brand-yellow/10 dark:hover:bg-brand-yellow/20 p-2.5 md:p-2 flex-shrink-0"
+          className={`hover:bg-brand-yellow/10 dark:hover:bg-brand-yellow/20 p-2.5 md:p-2 flex-shrink-0 ${isSending || !newMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
           onClick={handleSendClick}
+          disabled={isSending || !newMessage.trim()}
         />
       </div>
     </div>
