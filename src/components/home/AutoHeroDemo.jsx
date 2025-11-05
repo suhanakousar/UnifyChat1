@@ -240,13 +240,13 @@ const AutoHeroDemo = () => {
           {/* Main CTA buttons */}
           <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <a 
-              href="#get-started" 
+              href="/Signup" 
               className="px-8 py-3 rounded-lg bg-primary-600 hover:bg-primary-700 text-white font-bold text-lg transition-colors shadow-lg hover:shadow-xl"
             >
               Get Started Free
             </a>
             <a 
-              href="#learn-more" 
+              href="#features" 
               className="px-8 py-3 rounded-lg bg-gray-800 hover:bg-gray-700 text-white font-bold text-lg transition-colors border border-primary-400/30 hover:border-primary-400/60"
             >
               Learn More
